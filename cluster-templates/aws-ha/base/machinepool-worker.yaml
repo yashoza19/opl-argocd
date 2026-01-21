@@ -1,0 +1,43 @@
+---
+apiVersion: hive.openshift.io/v1
+kind: MachinePool
+metadata:
+  name: cluster-placeholder-worker
+  namespace: cluster-placeholder
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  clusterDeploymentRef:
+    name: cluster-placeholder
+
+  name: worker
+
+  platform:
+    aws:
+      rootVolume:
+        iops: 2000
+        size: 100
+        type: gp3
+      type: m5.2xlarge  # Will be overridden by overlay
+      zones:
+        - us-east-1a
+        - us-east-1b
+        - us-east-1c
+
+  # Number of worker nodes
+  replicas: 3  # Will be overridden by overlay
+
+  # Auto-scaling configuration (optional)
+  # autoscaling:
+  #   minReplicas: 3
+  #   maxReplicas: 10
+
+  # Labels to apply to nodes
+  labels:
+    node-role.kubernetes.io/worker: ""
+
+  # Taints (optional)
+  # taints:
+  #   - key: workload
+  #     value: specialized
+  #     effect: NoSchedule

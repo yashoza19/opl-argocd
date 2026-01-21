@@ -1,0 +1,26 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-config
+  namespace: dev-cluster-01
+data:
+  clusterName: dev-cluster-01
+  baseDomain: dev.example.com
+  region: us-east-1
+  openshiftVersion: openshift-v4.14.0
+  environment: development
+
+  # Control plane configuration
+  controlPlaneInstanceType: m5.xlarge
+  controlPlaneReplicas: "3"
+
+  # Worker configuration
+  workerInstanceType: m5.2xlarge
+  workerReplicas: "3"
+  workerZones: "us-east-1a,us-east-1b,us-east-1c"
+
+  # Networking
+  clusterNetworkCIDR: 10.128.0.0/14
+  serviceNetworkCIDR: 172.30.0.0/16
+  machineNetworkCIDR: 10.0.0.0/16

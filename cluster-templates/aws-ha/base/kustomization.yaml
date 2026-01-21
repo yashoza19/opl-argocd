@@ -1,0 +1,47 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yaml
+  - clusterdeployment.yaml
+  - machinepool-worker.yaml
+  - managedcluster.yaml
+  - install-config-secret.yaml
+
+# Common labels applied to all resources
+commonLabels:
+  provisioner: hive
+  managed-by: argocd
+
+# Configuration for variable replacement
+configurations:
+  - kustomizeconfig.yaml
+
+# Namespace for all resources (will be overridden by overlay)
+namespace: cluster-placeholder
+
+# Replacements for parameterization (requires Kustomize v4+)
+replacements:
+  - source:
+      kind: ConfigMap
+      name: cluster-config
+      fieldPath: data.clusterName
+    targets:
+      - select:
+          kind: Namespace
+        fieldPaths:
+          - metadata.name
+      - select:
+          kind: ClusterDeployment
+        fieldPaths:
+          - metadata.name
+          - spec.clusterName
+      - select:
+          kind: MachinePool
+        fieldPaths:
+          - metadata.name
+          - spec.clusterDeploymentRef.name
+      - select:
+          kind: ManagedCluster
+        fieldPaths:
+          - metadata.name

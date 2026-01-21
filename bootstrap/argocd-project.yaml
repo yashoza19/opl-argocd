@@ -1,0 +1,72 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: cluster-provisioning
+  namespace: openshift-gitops
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  description: Project for managing OpenShift cluster provisioning via Hive and ACM
+
+  # Source repositories
+  sourceRepos:
+    - '*'  # Allow all repos - restrict this to your specific Git repo URL in production
+
+  # Destination clusters and namespaces
+  destinations:
+    - namespace: '*'
+      server: https://kubernetes.default.svc
+      name: in-cluster
+
+  # Cluster resource whitelist - allow Hive and ACM CRDs
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
+    - group: hive.openshift.io
+      kind: ClusterDeployment
+    - group: hive.openshift.io
+      kind: MachinePool
+    - group: hive.openshift.io
+      kind: ClusterImageSet
+    - group: hive.openshift.io
+      kind: ClusterProvision
+    - group: cluster.open-cluster-management.io
+      kind: ManagedCluster
+    - group: agent.open-cluster-management.io
+      kind: KlusterletAddonConfig
+    - group: cluster.open-cluster-management.io
+      kind: ManagedClusterSet
+    - group: cluster.open-cluster-management.io
+      kind: ManagedClusterSetBinding
+
+  # Namespace resource whitelist
+  namespaceResourceWhitelist:
+    - group: ''
+      kind: Secret
+    - group: ''
+      kind: ConfigMap
+    - group: ''
+      kind: Service
+    - group: ''
+      kind: ServiceAccount
+    - group: apps
+      kind: Deployment
+    - group: batch
+      kind: Job
+    - group: rbac.authorization.k8s.io
+      kind: Role
+    - group: rbac.authorization.k8s.io
+      kind: RoleBinding
+
+  # Orphaned resources - do not delete resources when app is deleted
+  orphanedResources:
+    warn: true
+
+  # Sync windows - optional, can be used to restrict when syncs happen
+  # syncWindows:
+  #   - kind: allow
+  #     schedule: '0 0 * * *'
+  #     duration: 24h
+  #     applications:
+  #       - '*'

@@ -1,0 +1,49 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cluster-provisioning-apps
+  namespace: openshift-gitops
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: cluster-provisioning
+
+  source:
+    repoURL: https://github.com/your-org/opl-argocd.git  # UPDATE THIS
+    targetRevision: main
+    path: clusters
+    directory:
+      recurse: true
+      include: '*/argocd-application.yaml'
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: openshift-gitops
+
+  syncPolicy:
+    automated:
+      prune: false  # Set to true to auto-delete removed clusters (use with caution!)
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  # Ignore differences in status fields
+  ignoreDifferences:
+    - group: hive.openshift.io
+      kind: ClusterDeployment
+      jsonPointers:
+        - /status
+    - group: cluster.open-cluster-management.io
+      kind: ManagedCluster
+      jsonPointers:
+        - /status

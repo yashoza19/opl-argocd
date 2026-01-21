@@ -1,0 +1,55 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: prod-cluster-01
+  namespace: openshift-gitops
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+    notifications.argoproj.io/subscribe.on-sync-succeeded.slack: cluster-ops
+  labels:
+    cluster-name: prod-cluster-01
+    environment: production
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: cluster-provisioning
+
+  source:
+    repoURL: https://github.com/your-org/opl-argocd.git  # UPDATE THIS
+    targetRevision: main
+    path: clusters/prod-cluster-01
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: prod-cluster-01
+
+  syncPolicy:
+    automated:
+      prune: false  # NEVER auto-delete production cluster resources
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - RespectIgnoreDifferences=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 10m
+
+  # Ignore differences in dynamic fields
+  ignoreDifferences:
+    - group: hive.openshift.io
+      kind: ClusterDeployment
+      jsonPointers:
+        - /status
+        - /spec/clusterMetadata/clusterID
+        - /spec/clusterMetadata/infraID
+    - group: cluster.open-cluster-management.io
+      kind: ManagedCluster
+      jsonPointers:
+        - /status
+        - /spec/managedClusterClientConfigs

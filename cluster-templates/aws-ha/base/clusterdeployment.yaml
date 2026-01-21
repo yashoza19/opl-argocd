@@ -1,0 +1,58 @@
+---
+apiVersion: hive.openshift.io/v1
+kind: ClusterDeployment
+metadata:
+  name: cluster-placeholder
+  namespace: cluster-placeholder
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  labels:
+    vendor: OpenShift
+    cloud: AWS
+spec:
+  baseDomain: example.com  # Will be overridden by overlay
+  clusterName: cluster-placeholder
+
+  # Platform configuration for AWS
+  platform:
+    aws:
+      credentialsSecretRef:
+        name: aws-credentials
+      region: us-east-1  # Will be overridden by overlay
+
+  # Cluster metadata
+  clusterMetadata:
+    adminKubeconfigSecretRef:
+      name: cluster-placeholder-admin-kubeconfig
+    adminPasswordSecretRef:
+      name: cluster-placeholder-admin-password
+    clusterID: ""
+    infraID: ""
+
+  # Provisioning configuration
+  provisioning:
+    installConfigSecretRef:
+      name: cluster-placeholder-install-config
+
+    sshPrivateKeySecretRef:
+      name: cluster-placeholder-ssh-key
+
+    imageSetRef:
+      name: openshift-v4.14.0  # Will be overridden by overlay
+
+    # Install strategy
+    manifestsConfigMapRef:
+      name: cluster-placeholder-manifests
+
+  # Pull secret for accessing Red Hat registries
+  pullSecretRef:
+    name: pull-secret
+
+  # Preserve cluster on delete (safety measure - set to false to auto-cleanup)
+  preserveOnDelete: true
+
+  # Power state
+  powerState: Running
+
+  # Hibernation configuration (optional - for cost savings)
+  # hibernateAfter: 8h

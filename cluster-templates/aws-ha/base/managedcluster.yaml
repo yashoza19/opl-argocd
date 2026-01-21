@@ -1,0 +1,58 @@
+---
+apiVersion: cluster.open-cluster-management.io/v1
+kind: ManagedCluster
+metadata:
+  name: cluster-placeholder
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  labels:
+    cloud: AWS
+    vendor: OpenShift
+    environment: production  # Will be overridden by overlay
+    cluster.open-cluster-management.io/clusterset: default
+spec:
+  # Hub cluster accepts this managed cluster
+  hubAcceptsClient: true
+
+  # Lease update configuration
+  leaseDurationSeconds: 60
+
+  # Cluster information
+  managedClusterClientConfigs:
+    - url: ""  # Will be populated automatically by ACM
+
+---
+apiVersion: agent.open-cluster-management.io/v1
+kind: KlusterletAddonConfig
+metadata:
+  name: cluster-placeholder
+  namespace: cluster-placeholder
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  clusterName: cluster-placeholder
+  clusterNamespace: cluster-placeholder
+  clusterLabels:
+    cloud: AWS
+    vendor: OpenShift
+
+  # Application manager
+  applicationManager:
+    enabled: true
+    argocdCluster: false
+
+  # Policy controller
+  policyController:
+    enabled: true
+
+  # Search collector
+  searchCollector:
+    enabled: true
+
+  # Certificate policy controller
+  certPolicyController:
+    enabled: true
+
+  # IAM policy controller (deprecated in newer ACM versions)
+  # iamPolicyController:
+  #   enabled: true

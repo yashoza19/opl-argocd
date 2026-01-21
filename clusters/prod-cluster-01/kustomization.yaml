@@ -1,0 +1,165 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: prod-cluster-01
+
+resources:
+  - ../../cluster-templates/aws-ha/base
+  - cluster-config.yaml
+
+# Patches to customize the cluster
+patches:
+  # Update namespace references
+  - target:
+      kind: Namespace
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: prod-cluster-01
+
+  # Update ClusterDeployment with specific values
+  - target:
+      kind: ClusterDeployment
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: prod-cluster-01
+      - op: replace
+        path: /metadata/namespace
+        value: prod-cluster-01
+      - op: replace
+        path: /spec/clusterName
+        value: prod-cluster-01
+      - op: replace
+        path: /spec/baseDomain
+        value: prod.example.com
+      - op: replace
+        path: /spec/platform/aws/region
+        value: us-west-2
+      - op: replace
+        path: /spec/provisioning/imageSetRef/name
+        value: openshift-v4.14.0
+
+  # Update MachinePool with specific values for production (larger instances)
+  - target:
+      kind: MachinePool
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: prod-cluster-01-worker
+      - op: replace
+        path: /metadata/namespace
+        value: prod-cluster-01
+      - op: replace
+        path: /spec/clusterDeploymentRef/name
+        value: prod-cluster-01
+      - op: replace
+        path: /spec/platform/aws/type
+        value: m5.4xlarge
+      - op: replace
+        path: /spec/replicas
+        value: 6
+      - op: replace
+        path: /spec/platform/aws/zones
+        value:
+          - us-west-2a
+          - us-west-2b
+          - us-west-2c
+
+  # Update ManagedCluster
+  - target:
+      kind: ManagedCluster
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: prod-cluster-01
+      - op: replace
+        path: /metadata/labels/environment
+        value: production
+
+  # Update KlusterletAddonConfig
+  - target:
+      kind: KlusterletAddonConfig
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: prod-cluster-01
+      - op: replace
+        path: /metadata/namespace
+        value: prod-cluster-01
+      - op: replace
+        path: /spec/clusterName
+        value: prod-cluster-01
+      - op: replace
+        path: /spec/clusterNamespace
+        value: prod-cluster-01
+
+  # Update install-config Secret
+  - target:
+      kind: Secret
+      name: cluster-placeholder-install-config
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: prod-cluster-01-install-config
+      - op: replace
+        path: /metadata/namespace
+        value: prod-cluster-01
+
+  # Update install-config content with production settings
+  - target:
+      kind: Secret
+      name: cluster-placeholder-install-config
+    patch: |-
+      - op: replace
+        path: /stringData/install-config.yaml
+        value: |
+          apiVersion: v1
+          baseDomain: prod.example.com
+          metadata:
+            name: prod-cluster-01
+          controlPlane:
+            name: master
+            platform:
+              aws:
+                type: m5.2xlarge
+                rootVolume:
+                  iops: 4000
+                  size: 120
+                  type: gp3
+                zones:
+                  - us-west-2a
+                  - us-west-2b
+                  - us-west-2c
+            replicas: 3
+          compute:
+            - name: worker
+              platform:
+                aws:
+                  type: m5.4xlarge
+                  rootVolume:
+                    iops: 3000
+                    size: 150
+                    type: gp3
+                  zones:
+                    - us-west-2a
+                    - us-west-2b
+                    - us-west-2c
+              replicas: 6
+          networking:
+            clusterNetwork:
+              - cidr: 10.128.0.0/14
+                hostPrefix: 23
+            machineNetwork:
+              - cidr: 10.0.0.0/16
+            serviceNetwork:
+              - 172.30.0.0/16
+            networkType: OVNKubernetes
+          platform:
+            aws:
+              region: us-west-2
+          fips: false
+          publish: External
+          pullSecret: '{"auths":{"fake":{"auth":"aW52YWxpZAo="}}}'
+          sshKey: |
+            ssh-rsa AAAA...placeholder

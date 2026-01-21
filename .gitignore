@@ -1,0 +1,48 @@
+# Secrets - NEVER commit these
+*.key
+*.pem
+*-key
+*-key.pub
+pull-secret.json
+aws-credentials
+**/secrets/*.yaml
+**/secrets/*.yml
+!secrets/README.md
+
+# Kubeconfig files
+kubeconfig
+*.kubeconfig
+*-kubeconfig
+
+# Sealed secrets private keys (public keys are OK to commit)
+sealed-secrets-key.yaml
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Terraform state (if using Terraform)
+*.tfstate
+*.tfstate.backup
+.terraform/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# OS files
+Thumbs.db
+
+# ArgoCD local config
+.argocd/
+
+# Kustomize build output
+kustomization.yaml.bak
+
+# Testing
+test-output/
