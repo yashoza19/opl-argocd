@@ -16,8 +16,8 @@ spec:
   project: cluster-provisioning
 
   source:
-    repoURL: https://github.com/your-org/opl-argocd.git  # UPDATE THIS
-    targetRevision: main
+    repoURL: https://github.com/yashoza19/opl-argocd.git
+    targetRevision: master
     path: clusters/prod-cluster-01
 
   destination:
