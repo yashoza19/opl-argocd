@@ -38,7 +38,7 @@ patches:
         value: us-east-1
       - op: replace
         path: /spec/provisioning/imageSetRef/name
-        value: openshift-v4.14.0
+        value: img4.20.10-x86-64-appsub
       - op: replace
         path: /spec/provisioning/installConfigSecretRef/name
         value: dev-cluster-01-install-config

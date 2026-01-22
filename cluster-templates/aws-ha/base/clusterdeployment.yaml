@@ -38,7 +38,7 @@ spec:
       name: cluster-placeholder-ssh-key
 
     imageSetRef:
-      name: openshift-v4.14.0  # Will be overridden by overlay
+      name: img4.20.10-x86-64-appsub  # Will be overridden by overlay
 
     # Install strategy
     manifestsConfigMapRef:
