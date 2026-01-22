@@ -60,6 +60,22 @@ spec:
       kind: RoleBinding
     - group: argoproj.io
       kind: Application
+    - group: hive.openshift.io
+      kind: ClusterDeployment
+    - group: hive.openshift.io
+      kind: MachinePool
+    - group: hive.openshift.io
+      kind: ClusterImageSet
+    - group: hive.openshift.io
+      kind: ClusterProvision
+    - group: cluster.open-cluster-management.io
+      kind: ManagedCluster
+    - group: agent.open-cluster-management.io
+      kind: KlusterletAddonConfig
+    - group: cluster.open-cluster-management.io
+      kind: ManagedClusterSet
+    - group: cluster.open-cluster-management.io
+      kind: ManagedClusterSetBinding
 
   # Orphaned resources - do not delete resources when app is deleted
   orphanedResources:
