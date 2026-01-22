@@ -17,10 +17,6 @@ spec:
   # Lease update configuration
   leaseDurationSeconds: 60
 
-  # Cluster information
-  managedClusterClientConfigs:
-    - url: ""  # Will be populated automatically by ACM
-
 ---
 apiVersion: agent.open-cluster-management.io/v1
 kind: KlusterletAddonConfig
