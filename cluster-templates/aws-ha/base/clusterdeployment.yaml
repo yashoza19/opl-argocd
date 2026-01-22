@@ -39,8 +39,8 @@ spec:
   pullSecretRef:
     name: pull-secret
 
-  # Preserve cluster on delete (safety measure - set to false to auto-cleanup)
-  preserveOnDelete: true
+  # Preserve cluster on delete - set to false so clusters are cleaned up when deleted from Git
+  preserveOnDelete: false
 
   # Power state
   powerState: Running
