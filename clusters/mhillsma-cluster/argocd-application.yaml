@@ -1,4 +1,3 @@
-you'd need a argocd-application.yaml in your cluster dir too:
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
