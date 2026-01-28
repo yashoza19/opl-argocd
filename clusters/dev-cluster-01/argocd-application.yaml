@@ -30,7 +30,8 @@ spec:
       allowEmpty: false
     syncOptions:
       - PrunePropagationPolicy=orphan
-      - RespectIgnoreDifferences=true  # Only manages resources defined in git, prevents tracking Hive-created secrets
+      - RespectIgnoreDifferences=true
+      - ApplyOutOfSyncOnly=true  # Only manages resources defined in git, prevents tracking Hive-created secrets
     retry:
       limit: 5
       backoff:
