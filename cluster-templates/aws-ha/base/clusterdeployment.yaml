@@ -18,7 +18,6 @@ spec:
     aws:
       credentialsSecretRef:
         name: aws-credentials
-        namespace: default
       region: us-east-1  # Will be overridden by overlay
 
   # Provisioning configuration
@@ -39,7 +38,6 @@ spec:
   # Pull secret for accessing Red Hat registries
   pullSecretRef:
     name: pull-secret
-    namespace: default
 
   # Preserve cluster on delete - set to false so clusters are cleaned up when deleted from Git
   preserveOnDelete: false
