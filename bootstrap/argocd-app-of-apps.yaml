@@ -7,7 +7,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "1"
 spec:
-  project: cluster-provisioning
+  project: cluster-provisioning-argocd
 
   source:
     repoURL: https://github.com/yashoza19/opl-argocd.git
@@ -23,13 +23,11 @@ spec:
 
   syncPolicy:
     automated:
-      prune: false  # Set to true to auto-delete removed clusters (use with caution!)
+      prune: true  # Set to true to auto-delete removed clusters (use with caution!)
       selfHeal: true
-      allowEmpty: false
+      allowEmpty: true
     syncOptions:
       - CreateNamespace=true
-      - PrunePropagationPolicy=foreground
-      - PruneLast=true
     retry:
       limit: 5
       backoff:

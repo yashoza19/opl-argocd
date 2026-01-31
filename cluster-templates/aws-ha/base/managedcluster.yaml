@@ -35,6 +35,7 @@ spec:
   # Application manager
   applicationManager:
     enabled: true
+    #argocdCluster: false
 
   # Policy controller
   policyController:

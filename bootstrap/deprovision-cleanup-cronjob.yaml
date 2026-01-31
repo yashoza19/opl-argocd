@@ -1,0 +1,177 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: deprovision-cleanup-sa
+  namespace: openshift-gitops
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: deprovision-cleanup-role
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list", "patch", "update"]
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list"]
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: deprovision-cleanup-binding
+subjects:
+  - kind: ServiceAccount
+    name: deprovision-cleanup-sa
+    namespace: openshift-gitops
+roleRef:
+  kind: ClusterRole
+  name: deprovision-cleanup-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: deprovision-cleanup
+  namespace: openshift-gitops
+spec:
+  imagePullSecrets:
+    - name: 12648643-deprovision-cleanup-sa-pull-secret
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 300
+      backoffLimit: 0
+      template:
+        spec:
+          serviceAccountName: deprovision-cleanup-sa
+          restartPolicy: Never
+          containers:
+            - name: cleanup
+              image: registry.redhat.io/openshift4/ose-cli:v4.14
+              env:
+                - name: FINALIZER
+                  value: "openshiftpartnerlabs.com/deprovision"
+                - name: DEPROVISION_LABEL
+                  value: "openshiftpartnerlabs.com/deprovision-pending"
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  set -e
+
+                  echo "=== Deprovision Cleanup - $(date) ==="
+                  echo ""
+
+                  # Query labeled secrets
+                  SECRETS=$(oc get secrets -A -l "$DEPROVISION_LABEL=true" \
+                    -o jsonpath='{range .items[*]}{.metadata.namespace}/{.metadata.name}{"\n"}{end}' \
+                    2>/dev/null | grep -v '^$' || echo "")
+
+                  if [[ -z "$SECRETS" ]]; then
+                    echo "No secrets pending cleanup"
+                    exit 0
+                  fi
+
+                  echo "Found secrets pending cleanup:"
+                  echo "$SECRETS"
+                  echo ""
+
+                  CLEANED=0
+                  FAILED=0
+                  PENDING=0
+
+                  while IFS= read -r secret_ref; do
+                    [[ -z "$secret_ref" ]] && continue
+
+                    NAMESPACE=$(echo "$secret_ref" | cut -d'/' -f1)
+                    SECRET_NAME=$(echo "$secret_ref" | cut -d'/' -f2)
+                    CLUSTER_NAME="$NAMESPACE"
+                    UNINSTALL_JOB="${CLUSTER_NAME}-uninstall"
+
+                    echo "Processing: $NAMESPACE/$SECRET_NAME"
+
+                    # Check uninstall job status
+                    JOB_COMPLETE=$(oc get job "$UNINSTALL_JOB" -n "$NAMESPACE" \
+                      -o jsonpath='{.status.conditions[?(@.type=="Complete")].status}' 2>/dev/null || echo "")
+                    JOB_FAILED=$(oc get job "$UNINSTALL_JOB" -n "$NAMESPACE" \
+                      -o jsonpath='{.status.conditions[?(@.type=="Failed")].status}' 2>/dev/null || echo "")
+
+                    if [[ "$JOB_COMPLETE" == "True" ]]; then
+                      echo "  Uninstall completed - removing finalizer"
+
+                      # Get current finalizers using jsonpath
+                      CURRENT_FINALIZERS=$(oc get secret "$SECRET_NAME" -n "$NAMESPACE" \
+                        -o jsonpath='{.metadata.finalizers[*]}' 2>/dev/null || echo "")
+
+                      echo "  Current finalizers: $CURRENT_FINALIZERS"
+
+                      if [[ "$CURRENT_FINALIZERS" == *"$FINALIZER"* ]]; then
+                        # Build new finalizers array without our finalizer
+                        NEW_ARRAY="["
+                        FIRST=true
+                        for fin in $CURRENT_FINALIZERS; do
+                          if [[ "$fin" != "$FINALIZER" ]]; then
+                            if [[ "$FIRST" == "true" ]]; then
+                              NEW_ARRAY="${NEW_ARRAY}\"${fin}\""
+                              FIRST=false
+                            else
+                              NEW_ARRAY="${NEW_ARRAY},\"${fin}\""
+                            fi
+                          fi
+                        done
+                        NEW_ARRAY="${NEW_ARRAY}]"
+
+                        echo "  New finalizers: $NEW_ARRAY"
+
+                        # Use merge patch to replace finalizers
+                        oc patch secret "$SECRET_NAME" -n "$NAMESPACE" --type=merge \
+                          -p="{\"metadata\":{\"finalizers\":$NEW_ARRAY}}"
+                        echo "  Finalizer removed"
+                      else
+                        echo "  Finalizer not found or already removed"
+                      fi
+
+                      # Remove tracking label
+                      oc label secret "$SECRET_NAME" -n "$NAMESPACE" "$DEPROVISION_LABEL-" 2>/dev/null || true
+
+                      echo "  Cleaned up"
+                      ((CLEANED++)) || true
+
+                    elif [[ "$JOB_FAILED" == "True" ]]; then
+                      echo "  WARNING: Uninstall FAILED - manual intervention required"
+
+                      # Create an event for visibility
+                      oc create event "deprovision-failed-$CLUSTER_NAME" \
+                        --namespace="$NAMESPACE" \
+                        --type=Warning \
+                        --reason=DeprovisionFailed \
+                        --message="Uninstall job $UNINSTALL_JOB failed. Manual cleanup required." \
+                        2>/dev/null || true
+
+                      ((FAILED++)) || true
+
+                    else
+                      echo "  Uninstall still in progress or not started"
+                      ((PENDING++)) || true
+                    fi
+
+                    echo ""
+                  done <<< "$SECRETS"
+
+                  echo "=== Summary ==="
+                  echo "Cleaned: $CLEANED"
+                  echo "Failed (need attention): $FAILED"
+                  echo "Pending: $PENDING"
+                  echo ""
+                  echo "=== Done ==="
