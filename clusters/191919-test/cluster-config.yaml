@@ -1,0 +1,26 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-config
+  namespace: 191919-test
+data:
+  clusterName: 191919-test
+  baseDomain: openshiftpartnerlabs.com
+  region: apac1
+  openshiftVersion: 4.19.0
+  environment: staging
+
+  # Control plane configuration
+  controlPlaneInstanceType: m5.xlarge
+  controlPlaneReplicas: "3"
+
+  # Worker configuration
+  workerInstanceType: m5.2xlarge
+  workerReplicas: "2"
+  workerZones: "apac1a,apac1b,apac1c"
+
+  # Networking
+  clusterNetworkCIDR: 10.128.0.0/14
+  serviceNetworkCIDR: 172.30.0.0/16
+  machineNetworkCIDR: 10.0.0.0/16
